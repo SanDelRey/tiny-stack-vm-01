@@ -3,8 +3,8 @@ import { join } from 'node:path';
 const I = process.env.MAKEFUN_INPUT_DIR ?? '/input';
 const O = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
 const SL = 1e6,
-OM = 65536,
-enc = new TextEncoder();
+  OM = 65536,
+  NB = new Uint8Array(11);
 const D = new Int32Array(256),
 C = new Int32Array(64),
 M = new Int32Array(256),
@@ -155,12 +155,20 @@ M[a] = v;
 break;
 }
 case 0x50: {
-const b = enc.encode(String(D[sp - 1]));
-if (olen + b.length > OM) return trap(11);
-sp--;
-out.set(b, olen);
-olen += b.length;
-break;
+  let v = D[sp - 1];
+  const neg = v < 0;
+  let u = neg ? -v : v;
+  let k = 11;
+  do {
+    NB[--k] = 48 + (u % 10);
+    u = Math.floor(u / 10);
+  } while (u > 0);
+  if (neg) NB[--k] = 45;
+  const len = 11 - k;
+  if (olen + len > OM) return trap(11);
+  sp--;
+  for (let j = k; j < 11; j++) out[olen++] = NB[j];
+  break;
 }
 case 0x51:
 if (olen + 1 > OM) return trap(11);
